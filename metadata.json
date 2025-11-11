@@ -1,0 +1,5 @@
+{
+  "name": "Sistema Centralizado de Gestión de Cuentas",
+  "description": "Un sistema web para administrar cuentas de clientes, suscripciones y pagos en múltiples negocios. Proporciona un panel de control intuitivo tanto para administradores de negocios como para clientes.",
+  "requestFramePermissions": []
+}
