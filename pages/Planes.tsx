@@ -3,6 +3,7 @@ import { Plan } from '../types';
 import { PlusIcon } from '../components/icons';
 import PlanCard from '../components/PlanCard';
 import PlanModal from '../components/modals/PlanModal';
+import ConfirmationModal from '../components/modals/ConfirmationModal';
 import { mockPlanes } from '../data/mockData';
 
 const Planes: React.FC = () => {
@@ -10,6 +11,9 @@ const Planes: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [planToEdit, setPlanToEdit] = useState<Plan | null>(null);
   
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [planToDeleteId, setPlanToDeleteId] = useState<string | null>(null);
+
   const handleOpenModal = (plan?: Plan) => {
     setPlanToEdit(plan || null);
     setIsModalOpen(true);
@@ -33,10 +37,18 @@ const Planes: React.FC = () => {
   };
   
   const handleDeletePlan = (planId: string) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar este plan? Esta acción es permanente.')) {
-      setPlanes(prevPlanes => prevPlanes.filter(p => p.id !== planId));
+    setPlanToDeleteId(planId);
+    setIsConfirmModalOpen(true);
+  };
+  
+  const confirmDelete = () => {
+    if (planToDeleteId) {
+      setPlanes(prevPlanes => prevPlanes.filter(p => p.id !== planToDeleteId));
+      setPlanToDeleteId(null);
     }
   };
+
+  const planToDelete = planes.find(p => p.id === planToDeleteId);
 
   return (
     <div>
@@ -70,6 +82,14 @@ const Planes: React.FC = () => {
         onClose={handleCloseModal}
         onSave={handleSavePlan}
         planToEdit={planToEdit}
+      />
+
+      <ConfirmationModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={confirmDelete}
+        title={`Eliminar Plan "${planToDelete?.nombre || ''}"`}
+        message="¿Estás seguro de que quieres eliminar este plan? Esta acción es permanente y no se puede deshacer."
       />
     </div>
   );

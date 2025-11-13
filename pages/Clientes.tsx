@@ -18,6 +18,7 @@ const Clientes: React.FC = () => {
   const [clientes, setClientes] = useState<Cliente[]>(mockClientes);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [customerToEdit, setCustomerToEdit] = useState<Cliente | null>(null);
+  const [isViewMode, setIsViewMode] = useState(false); // New state for view mode
 
   const [currentPage, setCurrentPage] = useState(1);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -114,8 +115,18 @@ const Clientes: React.FC = () => {
     setSearchParams({}, { replace: true });
     setIsFilterOpen(false);
   };
+  
+  // Specific handler for viewing a profile in read-only mode
+  const handleViewProfile = (customer: Cliente) => {
+    setIsViewMode(true);
+    setCustomerToEdit(customer);
+    setIsModalOpen(true);
+    setOpenMenuId(null);
+  };
 
+  // Handler for creating a new customer or editing an existing one
   const handleOpenModal = (customer?: Cliente) => {
+    setIsViewMode(false);
     setCustomerToEdit(customer || null);
     setIsModalOpen(true);
     setOpenMenuId(null);
@@ -144,7 +155,7 @@ const Clientes: React.FC = () => {
         onClick={e => e.stopPropagation()}
         className="absolute right-8 top-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-20 border dark:border-gray-700"
     >
-        <button className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+        <button onClick={() => handleViewProfile(cliente)} className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
             <UserIcon className="w-4 h-4 mr-3" /> Ver Perfil de Cliente
         </button>
          <button onClick={() => handleOpenModal(cliente)} className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
@@ -347,6 +358,7 @@ const Clientes: React.FC = () => {
         onClose={handleCloseModal}
         onSave={handleSaveCustomer}
         customerToEdit={customerToEdit}
+        isReadOnly={isViewMode}
       />
     </div>
   );

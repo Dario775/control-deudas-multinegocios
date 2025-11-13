@@ -1,18 +1,19 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { HomeIcon, UsersIcon, PackageIcon, CreditCardIcon, SettingsIcon, FileTextIcon, WalletIcon } from '../icons';
+import { HomeIcon, UsersIcon, PackageIcon, SettingsIcon, ShoppingCartIcon, BarcodeIcon, BoxesIcon, BarChart3Icon, ReceiptTextIcon } from '../../icons';
 
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard', Icon: HomeIcon },
-  { to: '/clientes', label: 'Clientes', Icon: UsersIcon },
-  { to: '/planes', label: 'Planes y Servicios', Icon: PackageIcon },
-  { to: '/pagos', label: 'Pagos y Facturas', Icon: CreditCardIcon },
-  { to: '/facturacion', label: 'Facturación', Icon: FileTextIcon },
-  { to: '/economia', label: 'Economía', Icon: WalletIcon },
-  { to: '/configuracion', label: 'Configuración', Icon: SettingsIcon },
+  { to: '/pos/dashboard', label: 'Dashboard', Icon: HomeIcon },
+  { to: '/pos/sale', label: 'Punto de Venta', Icon: ShoppingCartIcon },
+  { to: '/pos/sales', label: 'Ventas', Icon: ReceiptTextIcon },
+  { to: '/pos/products', label: 'Productos', Icon: BarcodeIcon },
+  { to: '/pos/customers', label: 'Clientes', Icon: UsersIcon },
+  { to: '/pos/stock', label: 'Stock', Icon: BoxesIcon },
+  { to: '/pos/reports', label: 'Reportes', Icon: BarChart3Icon },
+  { to: '/pos/settings', label: 'Configuración', Icon: SettingsIcon },
 ];
 
-const Sidebar: React.FC = () => {
+const POSSidebar: React.FC = () => {
   const activeLinkClass = 'bg-indigo-600 text-white';
   const inactiveLinkClass = 'text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700';
 
@@ -21,7 +22,7 @@ const Sidebar: React.FC = () => {
       <NavLink
         to={item.to}
         className={({ isActive }) =>
-          `flex items-center px-4 py-2 mt-2 text-sm font-medium rounded-lg transition-colors duration-200 ${
+          `flex items-center px-4 py-2.5 mt-2 text-sm font-medium rounded-lg transition-colors duration-200 ${
             isActive ? activeLinkClass : inactiveLinkClass
           }`
         }
@@ -35,14 +36,13 @@ const Sidebar: React.FC = () => {
   return (
     <aside className="hidden md:flex w-64 flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
       <div className="h-16 flex items-center justify-center border-b border-gray-200 dark:border-gray-700">
-        <h1 className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">Gestor</h1>
+        <h1 className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">Sistema POS</h1>
       </div>
       <nav className="flex-1 px-4 py-4 overflow-y-auto">
-        <p className="px-4 pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase">Gestión</p>
         <ul>{navItems.map(renderNavLink)}</ul>
       </nav>
     </aside>
   );
 };
 
-export default Sidebar;
+export default POSSidebar;

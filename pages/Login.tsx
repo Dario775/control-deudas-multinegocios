@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+
+type UserRole = 'super-admin' | 'admin' | 'customer';
 
 interface LoginProps {
-  onLogin: (role: 'admin' | 'customer') => void;
+  onLogin: (role: UserRole) => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
@@ -13,14 +15,27 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (email && password) {
-      // Demo logic: log in as admin if email contains 'admin'
-      const role = email.includes('admin') ? 'admin' : 'customer';
-      onLogin(role);
-      // Navigate to the respective dashboard after login
-      if (role === 'admin') {
-          navigate('/dashboard');
+      let role: UserRole;
+      if (email.toLowerCase().includes('super@demo.com')) {
+          role = 'super-admin';
+      } else if (email.toLowerCase().includes('admin@demo.com')) {
+          role = 'admin';
       } else {
-          navigate('/portal/dashboard');
+          role = 'customer';
+      }
+      
+      onLogin(role);
+      
+      switch(role) {
+          case 'super-admin':
+              navigate('/super/dashboard');
+              break;
+          case 'admin':
+              navigate('/dashboard');
+              break;
+          case 'customer':
+              navigate('/portal/dashboard');
+              break;
       }
     } else {
       alert("Por favor, ingrese email y contraseña.");
@@ -32,10 +47,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md dark:bg-gray-800 border dark:border-gray-700">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">Gestor</h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">Inicia sesión en tu cuenta</p>
-          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              (Demo: usa 'admin@demo.com' para vista admin, o cualquier otro email para vista cliente)
-          </p>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">Inicia sesión en tu panel de gestión.</p>
+          <div className="mt-4 text-xs text-left text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-md">
+              <p className="font-bold mb-1">Cuentas de Demo (Gestión):</p>
+              <ul className="list-disc list-inside space-y-1">
+                  <li><span className="font-semibold">Super Admin:</span> super@demo.com</li>
+                  <li><span className="font-semibold">Admin Negocio:</span> admin@demo.com</li>
+                  <li><span className="font-semibold">Cliente:</span> cualquier@otro.email</li>
+              </ul>
+              <p className="mt-2">Para acceder al POS, navega a <Link to="/pos/login" className="font-semibold text-indigo-600 hover:underline">/pos/login</Link></p>
+          </div>
         </div>
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>

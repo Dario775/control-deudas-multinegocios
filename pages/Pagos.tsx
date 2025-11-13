@@ -1,8 +1,11 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Pago, PaymentStatus, PaymentMethod } from '../types';
-import { SearchIcon, FilterIcon, PlusIcon, MoreVerticalIcon, CreditCardIcon, LandmarkIcon, BanknoteIcon, XIcon } from '../components/icons';
-import { mockPagos } from '../data/mockData';
+import { SearchIcon, FilterIcon, PlusIcon, MoreVerticalIcon, CreditCardIcon, LandmarkIcon, BanknoteIcon, XIcon, EyeIcon, ReceiptTextIcon, WhatsappIcon, PhoneIcon, MailIcon } from '../components/icons';
+import { mockPagos, mockClientes } from '../data/mockData';
+import PaymentModal from '../components/modals/PaymentModal';
+import NewPaymentModal from '../components/modals/NewPaymentModal';
+import PaymentDetailModal from '../components/modals/PaymentDetailModal';
 
 const statusColors: { [key in PaymentStatus]: string } = {
   [PaymentStatus.Pagada]: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
@@ -13,7 +16,6 @@ const statusColors: { [key in PaymentStatus]: string } = {
 
 const renderPaymentMethod = (method: PaymentMethod) => {
   let icon: React.ReactNode;
-  // Fix: Explicitly type `text` as string to allow assignment of a simplified string value.
   let text: string = method;
 
   switch (method) {
@@ -38,9 +40,17 @@ const renderPaymentMethod = (method: PaymentMethod) => {
 };
 
 const Pagos: React.FC = () => {
+    const [pagos, setPagos] = useState<Pago[]>(mockPagos);
     const [searchParams, setSearchParams] = useSearchParams();
+    const navigate = useNavigate();
     const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const filterRef = useRef<HTMLDivElement>(null);
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [paymentToRegister, setPaymentToRegister] = useState<Pago | null>(null);
+    const [isNewPaymentModalOpen, setIsNewPaymentModalOpen] = useState(false);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [paymentForDetail, setPaymentForDetail] = useState<Pago | null>(null);
 
     const searchQuery = searchParams.get('search') || '';
     const statusFilter = searchParams.get('status');
@@ -51,13 +61,17 @@ const Pagos: React.FC = () => {
             if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
                 setIsFilterOpen(false);
             }
+             const target = event.target as HTMLElement;
+            if (openMenuId && !target.closest(`[data-menu-id="${openMenuId}"]`)) {
+                setOpenMenuId(null);
+            }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    }, [openMenuId]);
 
     const filteredPagos = useMemo(() => {
-        let filtered = [...mockPagos];
+        let filtered = [...pagos];
 
         if (statusFilter) {
              const capitalizedStatus = statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1);
@@ -81,7 +95,7 @@ const Pagos: React.FC = () => {
         }
 
         return filtered;
-    }, [searchQuery, statusFilter, methodFilter]);
+    }, [searchQuery, statusFilter, methodFilter, pagos]);
     
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newQuery = e.target.value;
@@ -109,6 +123,50 @@ const Pagos: React.FC = () => {
         setIsFilterOpen(false);
     };
 
+    const handleMenuClick = (e: React.MouseEvent, pagoId: string) => {
+      e.stopPropagation();
+      setOpenMenuId(openMenuId === pagoId ? null : pagoId);
+    };
+
+    const handleOpenRegisterModal = (pago: Pago) => {
+        setPaymentToRegister(pago);
+        setIsPaymentModalOpen(true);
+        setOpenMenuId(null);
+    };
+    
+    const handleSavePayment = (updatedPayment: Pago) => {
+        setPagos(prevPagos => 
+            prevPagos.map(p => p.id === updatedPayment.id ? updatedPayment : p)
+        );
+        setIsPaymentModalOpen(false);
+        setPaymentToRegister(null);
+    };
+    
+    const handleSaveNewPayment = (paymentData: Omit<Pago, 'id' | 'estado' | 'fechaPago' | 'descripcion'> & { fechaPago: string, descripcion?: string }) => {
+        const newPayment: Pago = {
+            id: `pay-${Date.now()}`,
+            cliente: paymentData.cliente,
+            monto: paymentData.monto,
+            metodo: paymentData.metodo,
+            fechaPago: paymentData.fechaPago.split('-').reverse().join('/'),
+            estado: PaymentStatus.Pagada,
+            descripcion: paymentData.descripcion,
+        };
+        setPagos(prevPagos => [newPayment, ...prevPagos]);
+        setIsNewPaymentModalOpen(false);
+    };
+
+    const handleViewDetail = (pago: Pago) => {
+        setPaymentForDetail(pago);
+        setIsDetailModalOpen(true);
+        setOpenMenuId(null);
+    };
+
+    const handleViewReceipt = (pago: Pago) => {
+        navigate(`/facturacion?search=${encodeURIComponent(pago.cliente.nombre)}`);
+        setOpenMenuId(null);
+    };
+
     const isAnyFilterActive = !!(searchQuery || statusFilter || methodFilter);
     
     const getPageTitle = () => {
@@ -121,6 +179,38 @@ const Pagos: React.FC = () => {
             default: return "Pagos y Facturas";
         }
     }
+
+    const ActionMenu: React.FC<{ pago: Pago }> = ({ pago }) => (
+        <div 
+            onClick={e => e.stopPropagation()}
+            className="absolute right-8 top-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-20 border dark:border-gray-700"
+        >
+            <button 
+                onClick={() => handleViewDetail(pago)}
+                className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+                <EyeIcon className="w-4 h-4 mr-3" /> Ver Detalle del Pago
+            </button>
+
+            {pago.estado === PaymentStatus.Pagada && (
+                <button 
+                    onClick={() => handleViewReceipt(pago)}
+                    className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                    <ReceiptTextIcon className="w-4 h-4 mr-3" /> Ver Comprobante
+                </button>
+            )}
+
+            {[PaymentStatus.Pendiente, PaymentStatus.Vencida].includes(pago.estado) && (
+                 <button 
+                    onClick={() => handleOpenRegisterModal(pago)}
+                    className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                 >
+                    <CreditCardIcon className="w-4 h-4 mr-3" /> Registrar Pago
+                </button>
+            )}
+        </div>
+    );
 
     return (
         <div>
@@ -208,7 +298,10 @@ const Pagos: React.FC = () => {
                             </div>
                         )}
                     </div>
-                    <button className="hidden sm:flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    <button 
+                        onClick={() => setIsNewPaymentModalOpen(true)}
+                        className="hidden sm:flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                    >
                         <PlusIcon className="w-5 h-5 mr-2" />
                         Registrar Pago
                     </button>
@@ -229,29 +322,54 @@ const Pagos: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredPagos.map((pago) => (
-                        <tr key={pago.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                            <td className="px-6 py-4">
-                            <div className="font-medium text-gray-900 dark:text-white">{pago.cliente.nombre}</div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">{pago.cliente.email}</div>
-                            </td>
-                            <td className="px-6 py-4 font-medium">${pago.monto.toFixed(2)}</td>
-                            <td className="px-6 py-4">{pago.fechaPago}</td>
-                            <td className="px-6 py-4">
-                            {renderPaymentMethod(pago.metodo)}
-                            </td>
-                            <td className="px-6 py-4">
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[pago.estado]}`}>
-                                {pago.estado}
-                            </span>
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                                <button className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                                    <MoreVerticalIcon className="w-5 h-5" />
-                                </button>
-                            </td>
-                        </tr>
-                        ))}
+                        {filteredPagos.map((pago) => {
+                             const clienteCompleto = mockClientes.find(c => c.id === pago.cliente.id);
+                            return (
+                                <tr key={pago.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                    <td className="px-6 py-4">
+                                        <div className="font-medium text-gray-900 dark:text-white">{pago.cliente.nombre}</div>
+                                        <div className="text-sm text-gray-500 dark:text-gray-400">{pago.cliente.email}</div>
+                                        {pago.estado !== PaymentStatus.Pagada && clienteCompleto && (
+                                            <div className="flex items-center space-x-2 mt-2">
+                                                <a href={`https://wa.me/${clienteCompleto.telefono.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" title="Contactar por WhatsApp" className="text-gray-400 hover:text-green-500">
+                                                    <WhatsappIcon className="w-5 h-5" />
+                                                </a>
+                                                <a href={`tel:${clienteCompleto.telefono}`} title="Llamar por teléfono" className="text-gray-400 hover:text-indigo-500">
+                                                    <PhoneIcon className="w-5 h-5" />
+                                                </a>
+                                                <a href={`mailto:${clienteCompleto.email}`} title="Enviar Email" className="text-gray-400 hover:text-indigo-500">
+                                                    <MailIcon className="w-5 h-5" />
+                                                </a>
+                                            </div>
+                                        )}
+                                        {pago.descripcion && (
+                                            <div className="text-xs text-gray-400 italic mt-1 max-w-xs truncate" title={pago.descripcion}>
+                                                {pago.descripcion}
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4 font-medium">${pago.monto.toFixed(2)}</td>
+                                    <td className="px-6 py-4">{pago.fechaPago}</td>
+                                    <td className="px-6 py-4">
+                                    {renderPaymentMethod(pago.metodo)}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[pago.estado]}`}>
+                                        {pago.estado}
+                                    </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-right relative" data-menu-id={pago.id}>
+                                        <button 
+                                            onClick={(e) => handleMenuClick(e, pago.id)} 
+                                            className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+                                        >
+                                            <MoreVerticalIcon className="w-5 h-5" />
+                                        </button>
+                                        {openMenuId === pago.id && <ActionMenu pago={pago} />}
+                                    </td>
+                                </tr>
+                            )
+                        })}
                     </tbody>
                     </table>
                 </div>
@@ -261,6 +379,22 @@ const Pagos: React.FC = () => {
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Intenta ajustar tu búsqueda o filtros.</p>
                 </div>
             )}
+            <NewPaymentModal
+                isOpen={isNewPaymentModalOpen}
+                onClose={() => setIsNewPaymentModalOpen(false)}
+                onSave={handleSaveNewPayment}
+            />
+            <PaymentModal 
+                isOpen={isPaymentModalOpen}
+                onClose={() => setIsPaymentModalOpen(false)}
+                onSave={handleSavePayment}
+                payment={paymentToRegister}
+             />
+             <PaymentDetailModal 
+                isOpen={isDetailModalOpen}
+                onClose={() => setIsDetailModalOpen(false)}
+                payment={paymentForDetail}
+            />
         </div>
     );
 };
